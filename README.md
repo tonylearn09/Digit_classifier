@@ -3,7 +3,7 @@
 ## How to install
 
 ```
-sudo pip install -r requirements.txt
+pip install -r requirements.txt
 git clone https://github.com/tonylearn09/Digit_classifier.git
 cd Digit_classifier/
 python digit.py [path_to_train_dir]
