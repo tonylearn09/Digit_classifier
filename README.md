@@ -3,9 +3,9 @@
 ## How to install
 
 ```
-pip install -r requirements.txt
 git clone https://github.com/tonylearn09/Digit_classifier.git
 cd Digit_classifier/
+pip install -r requirements.txt
 python digit.py [path_to_train_dir]
 ```
 
