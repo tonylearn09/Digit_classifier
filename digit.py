@@ -7,12 +7,11 @@ import sys
 import csv
 
 
-"""
-Digit class
-    Represent every digit in two dimension using PCA
-
-"""
 class Digit(object):
+    """Digit class
+    Represent every digit in two dimension using PCA
+    Also contain method for doing classification with svm
+    """
 
     def __init__(self, _digits_dir):
         # Initializing the Digit model
@@ -28,7 +27,6 @@ class Digit(object):
         # self.y_train dim: 5000 * 1
         self.X_train = np.loadtxt(open(self.digits_dir + '/X_train.csv'), delimiter=',')
         self.y_train = np.loadtxt(open(self.digits_dir + '/T_train.csv'), dtype='int', delimiter= ',')
-        #print(self.y_train.dtype)
 
         # Testing data
         # self.X_test dim: 2500 * 784
@@ -45,27 +43,46 @@ class Digit(object):
         self.X_train = pca.transform(self.X_train) # 5000 * 2
         self.X_test = pca.transform(self.X_test)   # 2500 * 2
 
-
-        #print(self.X_train.shape)
-        #print(self.X_test.shape)
-
-    def nu_svm_classify(self, kernel, degree=0, fig_num=0):
+    def svm_classify(self, svm_type='nu', kernel='rbf', degree=0, to_draw = False):
         '''Running nu-svm to do digit classification and return testing accuracy.
         Args:
+            svm_type: string, optional
+                    Specifies the svm type to be used in the algorithm
             kernel: string, optional
                     Specifies the kernel type to be used in the algorithm
                     It must be one of 'linear', 'poly', 'rbf', 'sigmoid', 'precomputed' or a callable.
             degree: int, optional (default=3)
                     Degree of the polynomial kernel function. Ignored by all other kernels.
-            fig_num: the new figure number
+            to_draw: int, optional (default=False)
+                    Specifies whether to draw the figure.
         Returns: 
             test_acc: a float represent mean accuracy on test set.
         '''
         # Training
-        clf = svm.NuSVC(kernel=kernel, degree=degree)
-        clf.fit(self.X_train, self.y_train)
+        if svm_type == 'nu':
+            clf = svm.NuSVC(kernel=kernel, degree=degree)
+        elif svm_type == 'c':
+            clf = svm.SVC(kernel=kernel, degree=degree)
+        else:
+            print('No this type of svm')
+            return 0
 
-        # Drawing
+        clf.fit(self.X_train, self.y_train)
+        
+        if to_draw:
+            self.draw_classifier(clf)
+
+        # Return testing accuracy
+        return clf.score(self.X_test, self.y_test)
+
+    def draw_classifier(self, clf, fig_num=0):
+        '''Plot the decision boundary, outlier, and support vectors.
+        Args:
+            clf: svm object, optional
+                Specifies the svm for doing classification when drawing.
+            fig_num: int, optional (default=0)
+                Specifies the figure number.
+        '''
         plt.figure(fig_num)
         plt.clf()
 
@@ -112,35 +129,17 @@ class Digit(object):
         Z = Z.reshape(XX.shape)
         plt.contourf(XX, YY, Z, cmap=plt.cm.Accent)
 
-        title = ''
+        #print(type(clf).__name__)
+        title = type(clf).__name__ + '_'
         if kernel == 'poly':
-            title = kernel + ' with degreee ' + str(degree) 
+            title += kernel + ' with degreee ' + str(degree) 
         else:
-            title = kernel
+            title += kernel
 
         plt.title(title)
 
         plt.savefig(title + '.png')
         #plt.show()
-
-        # Return testing accuracy
-        return clf.score(self.X_test, self.y_test)
-
-    def c_svm_classify(self, kernel, degree=0):
-        '''Running c-svm to do digit classification and return testing accuracy.
-        Args:
-            kernel: string, optional
-                    Specifies the kernel type to be used in the algorithm
-                    It must be one of 'linear', 'poly', 'rbf', 'sigmoid', 'precomputed' or a callable.
-            degree: int, optional (default=3)
-                    Degree of the polynomial kernel function. Ignored by all other kernels.
-        Returns: 
-            test_acc: a float represent mean accuracy on test set.
-        '''
-        clf = svm.SVC(kernel=kernel, degree=degree)
-        clf.fit(self.X_train, self.y_train)
-        return clf.score(self.X_test, self.y_test)
-
 
 
 if __name__ == '__main__':
@@ -151,13 +150,13 @@ if __name__ == '__main__':
     for fig_num, kernel in enumerate(('linear', 'rbf', 'poly')):
         if kernel == 'poly':
             for degree in xrange(2, 5):
-                nu_test_acc = digits.nu_svm_classify(kernel=kernel, degree=degree, fig_num=fig_num+degree)
-                c_test_acc = digits.c_svm_classify(kernel=kernel, degree=degree)
+                nu_test_acc = digits.svm_classify(svm_type='nu', kernel=kernel, degree=degree, to_draw=True)
+                c_test_acc = digits.svm_classify(svm_type='c', kernel=kernel, degree=degree)
                 print('Kernel: ' + kernel + ',  ' + 'degree: ' + str(degree) + ',   ' +
                       'Nu Accuracy: ' + str(nu_test_acc) + ',  C Accuracy: ' + str(c_test_acc))
         else:
-            nu_test_acc = digits.nu_svm_classify(kernel=kernel, fig_num=fig_num)
-            c_test_acc = digits.c_svm_classify(kernel=kernel)
+            nu_test_acc = digits.svm_classify(svm_type='nu', kernel=kernel, to_draw=True)
+            c_test_acc = digits.svm_classify(svm_type='c', kernel=kernel)
             print('Kernel: ' + kernel + ',  ' +  'Nu Accuracy: ' + str(nu_test_acc) +
                   ', C Accuracy: ' + str(c_test_acc))
 
