@@ -25,6 +25,8 @@ class Digit(object):
         # Training data
         # self.X_train dim: 5000 * 784
         # self.y_train dim: 5000 * 1
+        # Can further split this part of data to train/validation to tune the hyperparameter
+        # mu, c, or other else if you want (for report doing comparison)
         self.X_train = np.loadtxt(open(self.digits_dir + '/X_train.csv'), delimiter=',')
         self.y_train = np.loadtxt(open(self.digits_dir + '/T_train.csv'), dtype='int', delimiter= ',')
 
