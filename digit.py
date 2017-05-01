@@ -16,25 +16,38 @@ class Digit(object):
     def __init__(self, _digits_dir):
         # Initializing the Digit model
         self.digits_dir = _digits_dir
-        # 5 classes: 0 ~ 4
-        self.digit_classes = 5
-
         # Fix the random genertor for writing report only
         np.random.seed(42)
 
-        # Training data
-        # self.X_train dim: 5000 * 784
-        # self.y_train dim: 5000 * 1
-        # Can further split this part of data to train/validation to tune the hyperparameter
-        # mu, c, or other else if you want (for report doing comparison)
+        # Load training data
         self.X_train = np.loadtxt(open(self.digits_dir + '/X_train.csv'), delimiter=',')
         self.y_train = np.loadtxt(open(self.digits_dir + '/T_train.csv'), dtype='int', delimiter= ',')
+
+        # Seperate out 20% of training data for validation
+        indices = np.arange(self.X_train.shape[0])
+        np.random.shuffle(indices)
+        val_num = int(self.X_train.shape[0] * 0.2)
+        # self.X_val dim: 1000 * 784
+        # self.y_val dim: 1000 * 1
+        self.X_val = self.X_train[indices[:val_num], :]
+        self.y_val = self.y_train[indices[:val_num]]
+        print(self.X_val.shape)
+        print(self.y_val.shape)
+
+        # self.X_train dim: 4000 * 784
+        # self.y_train dim: 4000 * 1
+        self.X_train  = self.X_train[indices[val_num:], :]
+        self.y_train = self.y_train[indices[val_num:]]
+        print(self.X_train.shape)
+        print(self.y_train.shape)
 
         # Testing data
         # self.X_test dim: 2500 * 784
         # self.y_test dim : 2500 * 1
         self.X_test = np.loadtxt(open(self.digits_dir + '/X_test.csv'), delimiter=',')
         self.y_test = np.loadtxt(open(self.digits_dir + '/T_test.csv'), dtype='int', delimiter= ',')
+
+        # Set up data for drawing in 2D (PCA)
         self.reduce_dim()
     
     def reduce_dim(self):
@@ -42,14 +55,21 @@ class Digit(object):
         n_components = 2
         pca = PCA(n_components=n_components, svd_solver='randomized',
                   whiten=True).fit(self.X_train)
-        self.X_train = pca.transform(self.X_train) # 5000 * 2
-        self.X_test = pca.transform(self.X_test)   # 2500 * 2
+        self.X_train_pca = pca.transform(self.X_train) # 4000 * 2
+        self.X_val_pca = pca.transform(self.X_val) # 1000 * 2
+        self.X_test_pca = pca.transform(self.X_test)   # 2500 * 2
 
-    def svm_classify(self, svm_type='nu', kernel='rbf', degree=0, to_draw = False):
+    def svm_classify(self, svm_type='nu', C=1.0, nu=0.5, kernel='rbf', degree=0, to_draw = False):
         '''Running nu-svm to do digit classification and return testing accuracy.
         Args:
+            C: float, optional (default=1.0)
+                Penalty parameter of error term for c-svm. Ignored by all other svms.
+            nu: float, optional (default=0.5)
+                Upper bound on the fraction of training errors and a lower bound of the fraction
+                of support vectors for nu-svm. Ignored by all other svms.
             svm_type: string, optional
                     Specifies the svm type to be used in the algorithm
+                    It must be one of 'nu' or 'C' or 'c'.
             kernel: string, optional
                     Specifies the kernel type to be used in the algorithm
                     It must be one of 'linear', 'poly', 'rbf', 'sigmoid', 'precomputed' or a callable.
@@ -58,24 +78,24 @@ class Digit(object):
             to_draw: int, optional (default=False)
                     Specifies whether to draw the figure.
         Returns: 
-            test_acc: a float represent mean accuracy on test set.
+            (val_acc, test_acc): a float represent mean accuracy on test set.
         '''
         # Training
         if svm_type == 'nu':
-            clf = svm.NuSVC(kernel=kernel, degree=degree)
-        elif svm_type == 'c':
-            clf = svm.SVC(kernel=kernel, degree=degree)
+            clf = svm.NuSVC(nu=nu, kernel=kernel, degree=degree)
+        elif svm_type == 'c' or svm_type == 'C':
+            clf = svm.SVC(C=C, kernel=kernel, degree=degree)
         else:
             print('No this type of svm')
-            return 0
+            return None 
 
         clf.fit(self.X_train, self.y_train)
         
         if to_draw:
             self.draw_classifier(clf)
 
-        # Return testing accuracy
-        return clf.score(self.X_test, self.y_test)
+        # Return validation accuracy and testing accuracy
+        return clf.score(self.X_val, self.y_val), clf.score(self.X_test, self.y_test)
 
     def draw_classifier(self, clf, fig_num=0):
         '''Plot the decision boundary, outlier, and support vectors.
@@ -88,13 +108,20 @@ class Digit(object):
         plt.figure(fig_num)
         plt.clf()
 
-        # Randomly draw 150 training data points
-        train_indices = np.arange(self.X_train.shape[0])
+        x_min = np.r_[self.X_train_pca[:, 0], self.X_val_pca[:, 0]].min() - 1
+        x_max = np.r_[self.X_train_pca[:, 0], self.X_val_pca[:, 0]].max() + 1
+        y_min = np.r_[self.X_train_pca[:, 1], self.X_val_pca[:, 1]].min() - 1
+        y_max = np.r_[self.X_train_pca[:, 1], self.X_val_pca[:, 1]].max() + 1
+        plt.xlim([x_min, x_max])
+        plt.ylim([y_min, y_max])
+
+        # Randomly draw 300 training data points
+        train_indices = np.arange(self.X_train_pca.shape[0])
         np.random.shuffle(train_indices)
-        sample_num = 30 * 5 
+        sample_num = 60 * 5 
         draw_indices = train_indices[: sample_num]
         #print(draw_indices)
-        plt.scatter(self.X_train[draw_indices, 0], self.X_train[draw_indices, 1], s=3, 
+        plt.scatter(self.X_train_pca[draw_indices, 0], self.X_train_pca[draw_indices, 1], s=3, 
                     c=self.y_train[draw_indices], zorder=10, cmap=plt.cm.Paired)
 
         # Circle out the testing data
@@ -105,7 +132,7 @@ class Digit(object):
         sample_support_num = 30
         draw_indices = clf.support_[: sample_support_num]
         #print(support_draw_indices)
-        plt.scatter(self.X_train[draw_indices, 0], self.X_train[draw_indices, 1], s=30, 
+        plt.scatter(self.X_train_pca[draw_indices, 0], self.X_train_pca[draw_indices, 1], s=30, 
                     c=self.y_train[draw_indices], zorder=10, cmap=plt.cm.Paired)
         '''plt.scatter(clf.support_vectors_[:, 0], clf.support_vectors_[:, 1],
                     s=30, zorder=10)'''
@@ -115,21 +142,21 @@ class Digit(object):
         np.random.shuffle(outlier_indices)
         sample_outlier_num = 30
         draw_indices = outlier_indices[: sample_outlier_num]
-        plt.scatter(self.X_train[draw_indices, 0], self.X_train[draw_indices, 1], s=30,
+        plt.scatter(self.X_train_pca[draw_indices, 0], self.X_train_pca[draw_indices, 1], s=30,
                     c=self.y_train[draw_indices], zorder=10, cmap=plt.cm.Paired, marker='+')
 
         
         plt.axis('tight')
-        x_min = np.r_[self.X_train[:, 0], self.X_test[:, 0]].min() - 1
-        x_max = np.r_[self.X_train[:, 0], self.X_test[:, 0]].max() + 1
-        y_min = np.r_[self.X_train[:, 1], self.X_test[:, 1]].min() - 1
-        y_max = np.r_[self.X_train[:, 1], self.X_test[:, 1]].max() + 1
+        '''x_min = np.r_[self.X_train[:, 0], self.X_val[:, 0]].min() - 1
+        x_max = np.r_[self.X_train[:, 0], self.X_val[:, 0]].max() + 1
+        y_min = np.r_[self.X_train[:, 1], self.X_val[:, 1]].min() - 1
+        y_max = np.r_[self.X_train[:, 1], self.X_val[:, 1]].max() + 1
 
         XX, YY = np.meshgrid(np.arange(x_min, x_max, 0.01),
                              np.arange(y_min, y_max, 0.01))
         Z = clf.predict(np.c_[XX.ravel(), YY.ravel()])
         Z = Z.reshape(XX.shape)
-        plt.contourf(XX, YY, Z, cmap=plt.cm.Accent)
+        plt.contourf(XX, YY, Z, cmap=plt.cm.Accent)'''
 
         #print(type(clf).__name__)
         title = type(clf).__name__ + '_'
@@ -152,15 +179,19 @@ if __name__ == '__main__':
     for fig_num, kernel in enumerate(('linear', 'rbf', 'poly')):
         if kernel == 'poly':
             for degree in xrange(2, 5):
-                nu_test_acc = digits.svm_classify(svm_type='nu', kernel=kernel, degree=degree, to_draw=True)
-                c_test_acc = digits.svm_classify(svm_type='c', kernel=kernel, degree=degree)
+                nu_val_acc, nu_test_acc = digits.svm_classify(svm_type='nu', nu=0.5,
+                                                              kernel=kernel, degree=degree, to_draw=False)
+                c_val_acc, c_test_acc = digits.svm_classify(svm_type='c', C=4.0,
+                                                            kernel=kernel, degree=degree, to_draw=False)
                 print('Kernel: ' + kernel + ',  ' + 'degree: ' + str(degree) + ',   ' +
-                      'Nu Accuracy: ' + str(nu_test_acc) + ',  C Accuracy: ' + str(c_test_acc))
+                      'Nu val Accuracy: ' + str(nu_val_acc) + ',  C val Accuracy: ' + str(c_val_acc))
+                print('Nu test acc: ' + str(nu_test_acc) + ',  C test acc: ' + str(c_test_acc))
         else:
-            nu_test_acc = digits.svm_classify(svm_type='nu', kernel=kernel, to_draw=True)
-            c_test_acc = digits.svm_classify(svm_type='c', kernel=kernel)
-            print('Kernel: ' + kernel + ',  ' +  'Nu Accuracy: ' + str(nu_test_acc) +
-                  ', C Accuracy: ' + str(c_test_acc))
+            nu_val_acc, nu_test_acc = digits.svm_classify(svm_type='nu', nu=0.5, kernel=kernel, to_draw=False)
+            c_val_acc, c_test_acc = digits.svm_classify(svm_type='c', C=1.0, kernel=kernel, to_draw=False)
+            print('Kernel: ' + kernel + ',  ' +  'Nu val Accuracy: ' + str(nu_val_acc) +
+                  ', C val Accuracy: ' + str(c_val_acc))
+            print('Nu test acc: ' + str(nu_test_acc) + ',  C test acc: ' + str(c_test_acc))
 
 
 
