@@ -2,4 +2,7 @@
 *.pyc
 *.png
 *.rar
+*.txt
+*.docx
 *.DS_Store
+

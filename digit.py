@@ -31,15 +31,15 @@ class Digit(object):
         # self.y_val dim: 1000 * 1
         self.X_val = self.X_train[indices[:val_num], :]
         self.y_val = self.y_train[indices[:val_num]]
-        print(self.X_val.shape)
-        print(self.y_val.shape)
+        #print(self.X_val.shape)
+        #print(self.y_val.shape)
 
         # self.X_train dim: 4000 * 784
         # self.y_train dim: 4000 * 1
         self.X_train  = self.X_train[indices[val_num:], :]
         self.y_train = self.y_train[indices[val_num:]]
-        print(self.X_train.shape)
-        print(self.y_train.shape)
+        #print(self.X_train.shape)
+        #print(self.y_train.shape)
 
         # Testing data
         # self.X_test dim: 2500 * 784
@@ -93,7 +93,7 @@ class Digit(object):
         
         if to_draw:
             self.draw_classifier(clf)
-
+        #print clf.score(self.X_train, self.y_train)
         # Return validation accuracy and testing accuracy
         return clf.score(self.X_val, self.y_val), clf.score(self.X_test, self.y_test)
 
@@ -131,6 +131,7 @@ class Digit(object):
         np.random.shuffle(clf.support_)
         sample_support_num = 30
         draw_indices = clf.support_[: sample_support_num]
+        #draw_indices = clf.support_
         #print(support_draw_indices)
         plt.scatter(self.X_train_pca[draw_indices, 0], self.X_train_pca[draw_indices, 1], s=30, 
                     c=self.y_train[draw_indices], zorder=10, cmap=plt.cm.Paired)
@@ -142,6 +143,7 @@ class Digit(object):
         np.random.shuffle(outlier_indices)
         sample_outlier_num = 30
         draw_indices = outlier_indices[: sample_outlier_num]
+        #draw_indices = outlier_indices
         plt.scatter(self.X_train_pca[draw_indices, 0], self.X_train_pca[draw_indices, 1], s=30,
                     c=self.y_train[draw_indices], zorder=10, cmap=plt.cm.Paired, marker='+')
 
@@ -179,16 +181,16 @@ if __name__ == '__main__':
     for fig_num, kernel in enumerate(('linear', 'rbf', 'poly')):
         if kernel == 'poly':
             for degree in xrange(2, 5):
-                nu_val_acc, nu_test_acc = digits.svm_classify(svm_type='nu', nu=0.5,
-                                                              kernel=kernel, degree=degree, to_draw=False)
-                c_val_acc, c_test_acc = digits.svm_classify(svm_type='c', C=4.0,
+                nu_val_acc, nu_test_acc = digits.svm_classify(svm_type='nu', nu=0.05,
+                                                              kernel=kernel, degree=degree, to_draw=True)
+                c_val_acc, c_test_acc = digits.svm_classify(svm_type='c', C=10000,
                                                             kernel=kernel, degree=degree, to_draw=False)
                 print('Kernel: ' + kernel + ',  ' + 'degree: ' + str(degree) + ',   ' +
                       'Nu val Accuracy: ' + str(nu_val_acc) + ',  C val Accuracy: ' + str(c_val_acc))
                 print('Nu test acc: ' + str(nu_test_acc) + ',  C test acc: ' + str(c_test_acc))
         else:
-            nu_val_acc, nu_test_acc = digits.svm_classify(svm_type='nu', nu=0.5, kernel=kernel, to_draw=False)
-            c_val_acc, c_test_acc = digits.svm_classify(svm_type='c', C=1.0, kernel=kernel, to_draw=False)
+            nu_val_acc, nu_test_acc = digits.svm_classify(svm_type='nu', nu=0.05, kernel=kernel, to_draw=True)
+            c_val_acc, c_test_acc = digits.svm_classify(svm_type='c', C=10000, kernel=kernel, to_draw=False)
             print('Kernel: ' + kernel + ',  ' +  'Nu val Accuracy: ' + str(nu_val_acc) +
                   ', C val Accuracy: ' + str(c_val_acc))
             print('Nu test acc: ' + str(nu_test_acc) + ',  C test acc: ' + str(c_test_acc))
