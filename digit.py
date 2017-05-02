@@ -16,6 +16,7 @@ class Digit(object):
     def __init__(self, _digits_dir):
         # Initializing the Digit model
         self.digits_dir = _digits_dir
+        self.digit_classes = 5
         # Fix the random genertor for writing report only
         np.random.seed(42)
 
@@ -116,34 +117,52 @@ class Digit(object):
         plt.ylim([y_min, y_max])
 
         # Randomly draw 300 training data points
-        train_indices = np.arange(self.X_train_pca.shape[0])
-        np.random.shuffle(train_indices)
-        sample_num = 60 * 5 
-        draw_indices = train_indices[: sample_num]
+        #train_indices = np.arange(self.X_train_pca.shape[0])
+        #np.random.shuffle(train_indices)
+        #sample_num = 60 * 5 
+        #draw_indices = train_indices[: sample_num]
         #print(draw_indices)
-        plt.scatter(self.X_train_pca[draw_indices, 0], self.X_train_pca[draw_indices, 1], s=3, 
-                    c=self.y_train[draw_indices], zorder=10, cmap=plt.cm.Paired)
+        markers = 'osDH*'
+        colors = 'bgrcy'
+        for i, marker, color in zip(np.arange(1, self.digit_classes+1), markers, colors):
+            idx = np.where(self.y_train == i)
+            plt.scatter(self.X_train_pca[idx, 0], self.X_train_pca[idx, 1],
+                        marker=marker, c=color, s=3, zorder=10)
+            #plt.scatter(self.X_train_pca[draw_indices, 0], self.X_train_pca[draw_indices, 1], s=3, 
+                        #c=self.y_train[draw_indices], zorder=10, cmap=plt.cm.Paired)
+                        #marker=self.y_train[draw_indices], zorder=10)
+
 
         # Circle out the testing data
         #plt.scatter(self.X_test[:, 0], self.X_test[:, 1], s=80, facecolors='none', zorder=10)
 
         # Randommly draw 30 support vector
         np.random.shuffle(clf.support_)
-        sample_support_num = 30
+        sample_support_num = 50
         draw_indices = clf.support_[: sample_support_num]
         #print(support_draw_indices)
-        plt.scatter(self.X_train_pca[draw_indices, 0], self.X_train_pca[draw_indices, 1], s=30, 
-                    c=self.y_train[draw_indices], zorder=10, cmap=plt.cm.Paired)
-        '''plt.scatter(clf.support_vectors_[:, 0], clf.support_vectors_[:, 1],
-                    s=30, zorder=10)'''
+        for i, color in zip(np.arange(1, self.digit_classes+1), colors):
+            idx = np.where(self.y_train[draw_indices] == i)
+            plt.scatter(self.X_train_pca[idx, 0], self.X_train_pca[idx, 1], s=10,
+                        c=color, zorder=10, marker='x')
+            #print self.X_train_pca[idx, 0], self.X_train_pca[idx, 1]
+        #plt.scatter(self.X_train_pca[draw_indices, 0], self.X_train_pca[draw_indices, 1], s=30, 
+                    #c=self.y_train[draw_indices], zorder=10, cmap=plt.cm.Paired)
+                    #c=self.y_train[draw_indices], zorder=10)
 
         # Randomlu draw 30 outliers
         outlier_indices = np.where(clf.predict(self.X_train) != self.y_train)[0]
         np.random.shuffle(outlier_indices)
-        sample_outlier_num = 30
+        sample_outlier_num = 50
         draw_indices = outlier_indices[: sample_outlier_num]
-        plt.scatter(self.X_train_pca[draw_indices, 0], self.X_train_pca[draw_indices, 1], s=30,
-                    c=self.y_train[draw_indices], zorder=10, cmap=plt.cm.Paired, marker='+')
+        for i, color in zip(np.arange(1, self.digit_classes+1), colors):
+            idx = np.where(self.y_train[draw_indices] == i)
+            plt.scatter(self.X_train_pca[idx, 0], self.X_train_pca[idx, 1], s=10,
+                        c=color, zorder=10, marker='+')
+            #print self.X_train_pca[idx, 0], self.X_train_pca[idx, 1]
+        #plt.scatter(self.X_train_pca[draw_indices, 0], self.X_train_pca[draw_indices, 1], s=30,
+                    #c=self.y_train[draw_indices], zorder=10, cmap=plt.cm.Paired, marker='+')
+                    #c=self.y_train[draw_indices], zorder=10, marker='+')
 
         
         plt.axis('tight')
@@ -167,7 +186,7 @@ class Digit(object):
 
         plt.title(title)
 
-        plt.savefig(title + '.png')
+        plt.savefig(title + '.pdf')
         #plt.show()
 
 
@@ -180,14 +199,14 @@ if __name__ == '__main__':
         if kernel == 'poly':
             for degree in xrange(2, 5):
                 nu_val_acc, nu_test_acc = digits.svm_classify(svm_type='nu', nu=0.5,
-                                                              kernel=kernel, degree=degree, to_draw=False)
+                                                              kernel=kernel, degree=degree, to_draw=True)
                 c_val_acc, c_test_acc = digits.svm_classify(svm_type='c', C=4.0,
                                                             kernel=kernel, degree=degree, to_draw=False)
                 print('Kernel: ' + kernel + ',  ' + 'degree: ' + str(degree) + ',   ' +
                       'Nu val Accuracy: ' + str(nu_val_acc) + ',  C val Accuracy: ' + str(c_val_acc))
                 print('Nu test acc: ' + str(nu_test_acc) + ',  C test acc: ' + str(c_test_acc))
         else:
-            nu_val_acc, nu_test_acc = digits.svm_classify(svm_type='nu', nu=0.5, kernel=kernel, to_draw=False)
+            nu_val_acc, nu_test_acc = digits.svm_classify(svm_type='nu', nu=0.5, kernel=kernel, to_draw=True)
             c_val_acc, c_test_acc = digits.svm_classify(svm_type='c', C=1.0, kernel=kernel, to_draw=False)
             print('Kernel: ' + kernel + ',  ' +  'Nu val Accuracy: ' + str(nu_val_acc) +
                   ', C val Accuracy: ' + str(c_val_acc))
